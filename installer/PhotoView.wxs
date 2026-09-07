@@ -1,0 +1,186 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <!--
+    PhotoView インストーラー
+    - 画像ファイルの関連付け（png/jpg/jpeg/webp/bmp/gif/tif/tiff）
+    - 圧縮ファイルは関連付けない（zip/rar/7z などは「送る」でのみ開く）
+    - SendToフォルダにショートカットを配置（右クリックメニューの「送る」）
+    - UpgradeCode により上書きインストール対応
+    - EULA（ライセンス同意画面）を表示
+  -->
+
+  <Package Name="PhotoView"
+           Manufacturer="PhotoView"
+           Version="$(var.Version)"
+           UpgradeCode="0B7B0D5F-3A6B-4F2E-9C1D-8E4A2B6F0C31"
+           Scope="perUser"
+           Codepage="65001">
+    <MajorUpgrade DowngradeErrorMessage="既に新しいバージョンがインストールされています。" />
+    <MediaTemplate EmbedCab="yes" />
+    <!-- WiX v4 の正しい参照：<ui:WixUI> 要素（v3 の <UIRef Id="WixUI_*"> は保護レベルで使えない） -->
+    <ui:WixUI Id="WixUI_Minimal" />
+
+    <Feature Id="MainFeature" Title="PhotoView" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentGroupRef Id="FileAssociations" />
+      <ComponentGroupRef Id="SendToShortcut" />
+      <ComponentGroupRef Id="StartMenuShortcuts" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <!-- ライセンス同意画面（EULA）に表示する RTF -->
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.ProjectDir)EULA.rtf" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="INSTALLFOLDER" Name="PhotoView" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="SendToFolder" />
+
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Icon Id="AppIcon" SourceFile="$(var.ProjectDir)installer\app.ico" />
+
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Component Id="PhotoViewExe" Guid="A1B2C3D4-0001-4000-8000-000000000001">
+        <File Id="PhotoViewExe" Source="$(var.PublishDir)PhotoView.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="PhotoViewDll" Guid="A1B2C3D4-0002-4000-8000-000000000002">
+        <File Id="PhotoViewDll" Source="$(var.PublishDir)PhotoView.dll" />
+      </Component>
+      <Component Id="PhotoViewDeps" Guid="A1B2C3D4-0003-4000-8000-000000000003">
+        <File Id="PhotoViewDeps" Source="$(var.PublishDir)PhotoView.deps.json" />
+      </Component>
+      <Component Id="PhotoViewRuntimeConfig" Guid="A1B2C3D4-0004-4000-8000-000000000004">
+        <File Id="PhotoViewRuntimeConfig" Source="$(var.PublishDir)PhotoView.runtimeconfig.json" />
+      </Component>
+      <Component Id="SharpCompressDll" Guid="A1B2C3D4-0005-4000-8000-000000000005">
+        <File Id="SharpCompressDll" Source="$(var.PublishDir)SharpCompress.dll" />
+      </Component>
+      <Component Id="SkiaSharpDll" Guid="A1B2C3D4-0006-4000-8000-000000000006">
+        <File Id="SkiaSharpDll" Source="$(var.PublishDir)SkiaSharp.dll" />
+      </Component>
+      <Component Id="LibSkiaSharpDll" Guid="A1B2C3D4-001D-4000-8000-00000000001D">
+        <File Id="LibSkiaSharpDll" Source="$(var.PublishDir)libSkiaSharp.dll" />
+      </Component>
+      <Component Id="ZstdSharpDll" Guid="A1B2C3D4-0007-4000-8000-000000000007">
+        <File Id="ZstdSharpDll" Source="$(var.PublishDir)ZstdSharp.dll" />
+      </Component>
+      <Component Id="WindowsSdkNetDll" Guid="A1B2C3D4-0008-4000-8000-000000000008">
+        <File Id="WindowsSdkNetDll" Source="$(var.PublishDir)Microsoft.Windows.SDK.NET.dll" />
+      </Component>
+      <Component Id="WinRtRuntimeDll" Guid="A1B2C3D4-0009-4000-8000-000000000009">
+        <File Id="WinRtRuntimeDll" Source="$(var.PublishDir)WinRT.Runtime.dll" />
+      </Component>
+      <Component Id="OnnxRuntimeManagedDll" Guid="A1B2C3D4-0010-4000-8000-000000000010">
+        <File Id="OnnxRuntimeManagedDll" Source="$(var.PublishDir)Microsoft.ML.OnnxRuntime.dll" />
+      </Component>
+      <Component Id="OnnxRuntimeNativeDll" Guid="A1B2C3D4-001A-4000-8000-00000000001A">
+        <File Id="OnnxRuntimeNativeDll" Source="$(var.PublishDir)onnxruntime.dll" />
+      </Component>
+      <Component Id="OnnxRuntimeSharedDll" Guid="A1B2C3D4-001B-4000-8000-00000000001B">
+        <File Id="OnnxRuntimeSharedDll" Source="$(var.PublishDir)onnxruntime_providers_shared.dll" />
+      </Component>
+      <Component Id="SREsrganModel" Guid="A1B2C3D4-001C-4000-8000-00000000001C">
+        <File Id="SREsrganModel" Source="$(var.PublishDir)RealESRGAN_x4plus_anime_4B32F.onnx" />
+      </Component>
+      <Component Id="ReadmeFile" Guid="A1B2C3D4-001E-4000-8000-00000000001E">
+        <File Id="ReadmeFile" Source="$(var.ProjectDir)README.md" />
+      </Component>
+      <Component Id="LicenseFile" Guid="A1B2C3D4-001F-4000-8000-00000000001F">
+        <File Id="LicenseFile" Source="$(var.ProjectDir)LICENSE" />
+      </Component>
+      <Component Id="ThirdPartyNotices" Guid="A1B2C3D4-0020-4000-8000-000000000020">
+        <File Id="ThirdPartyNotices" Source="$(var.ProjectDir)THIRD-PARTY-NOTICES.txt" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- 画像ファイルの関連付け（ProgId）。圧縮ファイルは関連付けない -->
+    <ComponentGroup Id="FileAssociations">
+      <Component Id="AssocPng" Guid="A1B2C3D4-0011-4000-8000-000000000011">
+        <RegistryKey Root="HKCU" Key="Software\Classes\.png" ForceCreateOnInstall="yes">
+          <RegistryValue Type="string" Value="PhotoView.Image" KeyPath="yes" />
+        </RegistryKey>
+      </Component>
+      <Component Id="AssocJpg" Guid="A1B2C3D4-0012-4000-8000-000000000012">
+        <RegistryKey Root="HKCU" Key="Software\Classes\.jpg" ForceCreateOnInstall="yes">
+          <RegistryValue Type="string" Value="PhotoView.Image" KeyPath="yes" />
+        </RegistryKey>
+      </Component>
+      <Component Id="AssocJpeg" Guid="A1B2C3D4-0013-4000-8000-000000000013">
+        <RegistryKey Root="HKCU" Key="Software\Classes\.jpeg" ForceCreateOnInstall="yes">
+          <RegistryValue Type="string" Value="PhotoView.Image" KeyPath="yes" />
+        </RegistryKey>
+      </Component>
+      <Component Id="AssocWebp" Guid="A1B2C3D4-0014-4000-8000-000000000014">
+        <RegistryKey Root="HKCU" Key="Software\Classes\.webp" ForceCreateOnInstall="yes">
+          <RegistryValue Type="string" Value="PhotoView.Image" KeyPath="yes" />
+        </RegistryKey>
+      </Component>
+      <Component Id="AssocBmp" Guid="A1B2C3D4-0015-4000-8000-000000000015">
+        <RegistryKey Root="HKCU" Key="Software\Classes\.bmp" ForceCreateOnInstall="yes">
+          <RegistryValue Type="string" Value="PhotoView.Image" KeyPath="yes" />
+        </RegistryKey>
+      </Component>
+      <Component Id="AssocGif" Guid="A1B2C3D4-0016-4000-8000-000000000016">
+        <RegistryKey Root="HKCU" Key="Software\Classes\.gif" ForceCreateOnInstall="yes">
+          <RegistryValue Type="string" Value="PhotoView.Image" KeyPath="yes" />
+        </RegistryKey>
+      </Component>
+      <Component Id="AssocTif" Guid="A1B2C3D4-0017-4000-8000-000000000017">
+        <RegistryKey Root="HKCU" Key="Software\Classes\.tif" ForceCreateOnInstall="yes">
+          <RegistryValue Type="string" Value="PhotoView.Image" KeyPath="yes" />
+        </RegistryKey>
+      </Component>
+      <Component Id="AssocTiff" Guid="A1B2C3D4-0018-4000-8000-000000000018">
+        <RegistryKey Root="HKCU" Key="Software\Classes\.tiff" ForceCreateOnInstall="yes">
+          <RegistryValue Type="string" Value="PhotoView.Image" KeyPath="yes" />
+        </RegistryKey>
+      </Component>
+
+      <!-- ProgId 定義 -->
+      <Component Id="ProgIdPhotoViewImage" Guid="A1B2C3D4-0019-4000-8000-000000000019">
+        <RegistryKey Root="HKCU" Key="Software\Classes\PhotoView.Image\shell\open\command" ForceCreateOnInstall="yes">
+          <RegistryValue Type="string" Value="&quot;[INSTALLFOLDER]PhotoView.exe&quot; &quot;%1&quot;" KeyPath="yes" />
+        </RegistryKey>
+        <RegistryKey Root="HKCU" Key="Software\Classes\PhotoView.Image\DefaultIcon" ForceCreateOnInstall="yes">
+          <RegistryValue Type="string" Value="[INSTALLFOLDER]PhotoView.exe,0" />
+        </RegistryKey>
+      </Component>
+    </ComponentGroup>
+
+    <!-- SendTo ショートカット（右クリックメニューの「送る」） -->
+    <ComponentGroup Id="SendToShortcut" Directory="SendToFolder">
+      <Component Id="SendToPhotoView" Guid="A1B2C3D4-0021-4000-8000-000000000021">
+        <Shortcut Id="SendToPhotoViewShortcut"
+                  Name="PhotoView"
+                  Description="PhotoView で開く"
+                  Target="[INSTALLFOLDER]PhotoView.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon" />
+        <RemoveFolder Id="SendToFolderRemove" On="uninstall" />
+        <RegistryKey Root="HKCU" Key="Software\PhotoView\Installed" ForceCreateOnInstall="yes">
+          <RegistryValue Type="string" Value="1" KeyPath="yes" />
+        </RegistryKey>
+      </Component>
+    </ComponentGroup>
+
+    <!-- スタートメニューのショートカット -->
+    <ComponentGroup Id="StartMenuShortcuts" Directory="ProgramMenuFolder">
+      <Component Id="StartMenuShortcut" Guid="A1B2C3D4-0031-4000-8000-000000000031">
+        <Shortcut Id="StartMenuPhotoView"
+                  Name="PhotoView"
+                  Description="PhotoView 画像ビューア"
+                  Target="[INSTALLFOLDER]PhotoView.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon" />
+        <RemoveFolder Id="ProgramMenuPhotoViewDir" On="uninstall" />
+        <RegistryKey Root="HKCU" Key="Software\PhotoView\Installed" ForceCreateOnInstall="yes">
+          <RegistryValue Type="string" Value="1" KeyPath="yes" />
+        </RegistryKey>
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

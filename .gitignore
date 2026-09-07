@@ -1,0 +1,19 @@
+# .NET / ビルド成果物
+bin/
+obj/
+publish/
+dist/
+
+# インストーラー生成物
+installer/*.msi
+installer/*.wixpdb
+installer/*.cab
+
+# IDE / ユーザー設定
+*.user
+.vs/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

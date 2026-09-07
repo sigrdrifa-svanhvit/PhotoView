@@ -1,0 +1,273 @@
+﻿<Window x:Class="PhotoView.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PhotoView" Height="720" Width="1080"
+        WindowStartupLocation="Manual"
+        Background="#FF111111" Foreground="White"
+        AllowDrop="True"
+        PreviewKeyDown="Window_PreviewKeyDown"
+        Drop="Window_Drop"
+        DragOver="Window_DragOver"
+        MouseMove="Window_MouseMove"
+        MouseLeave="Window_MouseLeave">
+
+    <Window.Resources>
+        <Style x:Key="ThumbItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Margin" Value="3,0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" BorderBrush="Transparent" BorderThickness="2"
+                                Background="Transparent" CornerRadius="2" Padding="2">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF4FC3F7"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#22FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#11FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="Root">
+        <Grid.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header="ファイルを開く...  (Ctrl+O)" Click="MenuItem_OpenFile_Click"/>
+                <MenuItem Header="フォルダを開く...  (Ctrl+Shift+O)" Click="MenuItem_OpenFolder_Click"/>
+                <Separator/>
+                <MenuItem Header="編集 (簡易エディタ)" Click="MenuItem_Edit_Click"/>
+                <Separator/>
+                <MenuItem Header="2ページ表示  (P)" Click="MenuItem_TwoPage_Click" IsCheckable="True" x:Name="TwoPageMenuItem"/>
+                <MenuItem Header="2ページ左右入れ替え  (S)" Click="MenuItem_SwapPages_Click" IsCheckable="True" x:Name="SwapPagesMenuItem"/>
+                <Separator/>
+                <MenuItem Header="フィット  (0)" Click="MenuItem_Fit_Click"/>
+                <MenuItem Header="100%表示  (ダブルクリック)" Click="MenuItem_Zoom100_Click"/>
+                <Separator/>
+                <MenuItem Header="全画面  (F11)" Click="MenuItem_Fullscreen_Click"/>
+                <MenuItem Header="終了  (Esc)" Click="MenuItem_Exit_Click"/>
+            </ContextMenu>
+        </Grid.ContextMenu>
+
+        <!-- ビューア領域 -->
+        <Grid x:Name="Viewport" ClipToBounds="True" Background="#FF0D0D0D"
+              MouseLeftButtonDown="Viewport_MouseLeftButtonDown"
+              MouseLeftButtonUp="Viewport_MouseLeftButtonUp"
+              MouseMove="Viewport_MouseMove"
+              MouseWheel="Viewport_MouseWheel"
+              SizeChanged="Viewport_SizeChanged"
+              Focusable="True">
+            <Canvas x:Name="ViewportCanvas" ClipToBounds="True">
+                <Image x:Name="MainImage"
+                       RenderOptions.BitmapScalingMode="HighQuality"
+                       Stretch="Fill"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Top"
+                       Canvas.Left="0" Canvas.Top="0"/>
+                <Image x:Name="MainImage2"
+                       RenderOptions.BitmapScalingMode="HighQuality"
+                       Stretch="Fill"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Top"
+                       Canvas.Left="0" Canvas.Top="0"
+                       Visibility="Collapsed"/>
+            </Canvas>
+
+            <!-- 読み込み中表示 -->
+            <Border x:Name="LoadingOverlay" Background="#80000000"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    CornerRadius="6" Padding="16,10" Visibility="Collapsed">
+                <TextBlock Text="読み込み中..." Foreground="White" FontSize="14"/>
+            </Border>
+
+            <!-- エラー表示 -->
+            <TextBlock x:Name="ErrorText" Foreground="#FFCC6666" FontSize="14"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" Visibility="Collapsed" TextWrapping="Wrap" MaxWidth="600"/>
+
+            <!-- ドロップヒント -->
+            <Border x:Name="DropHint" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    BorderBrush="#44888888" BorderThickness="1.5" CornerRadius="12"
+                    Padding="40,26" Background="#22000000">
+                <StackPanel>
+                    <TextBlock Text="画像ビューア" FontSize="24" FontWeight="Bold"
+                               HorizontalAlignment="Center" Foreground="#EEE"/>
+                    <TextBlock Text="画像・フォルダ・圧縮ファイル（zip/rar/7z）・EPUB・PDF を&#10;ドラッグ＆ドロップ / Ctrl+O で開けます"
+                               FontSize="13" Foreground="#AAA" HorizontalAlignment="Center"
+                               TextAlignment="Center" Margin="0,12,0,0" LineHeight="20"/>
+                    <TextBlock Text="Ctrl+O: ファイル   Ctrl+Shift+O: フォルダ"
+                               FontSize="12" Foreground="#888" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+                    <TextBlock Text="← → / 左右端クリック: 送り戻し   Shift+← →: 1枚ずつ （左右端ホバーでボタン）"
+                               FontSize="12" Foreground="#888" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                    <TextBlock Text="P: 2枚表示   S: 左右入れ替え   Esc: 終了"
+                               FontSize="12" Foreground="#888" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                    <TextBlock Text="ホイール: 拡大縮小  ドラッグ: 移動   0: フィット   F11: 全画面"
+                               FontSize="12" Foreground="#888" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                    <TextBlock Text="右クリック: メニュー（編集・2枚表示など）"
+                               FontSize="12" Foreground="#888" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- 上部情報バー -->
+        <Border x:Name="TopBar" VerticalAlignment="Top" Background="#B0000000"
+                Padding="14,8" Visibility="Collapsed">
+            <Grid>
+                <StackPanel>
+                    <TextBlock x:Name="FileNameText" FontSize="14" FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis" MaxWidth="720"/>
+                    <TextBlock x:Name="IndexText" FontSize="12" Foreground="#AAA" Margin="0,2,0,0"/>
+                    <TextBlock x:Name="SourceText" FontSize="11" Foreground="#888" Margin="0,2,0,0"
+                               TextTrimming="CharacterEllipsis" MaxWidth="720"/>
+                </StackPanel>
+                <TextBlock x:Name="HintText" Text="← → / 左右端クリック: 送り戻し   Shift+← →: 1枚   P: 2枚表示   S: 入れ替え   ダブルクリック: フィット/100%   0: フィット   ホイール: 拡大縮小   ドラッグ: 移動   F11: 全画面   右クリック: メニュー"
+                           FontSize="11" Foreground="#666" VerticalAlignment="Bottom" HorizontalAlignment="Right"/>
+            </Grid>
+        </Border>
+
+        <!-- サムネイルストリップ -->
+        <Border x:Name="ThumbPanel" VerticalAlignment="Bottom" Background="#B0000000"
+                Padding="8,6" Visibility="Collapsed">
+            <ListBox x:Name="ThumbList"
+                     Background="Transparent" BorderThickness="0"
+                     ItemContainerStyle="{StaticResource ThumbItemStyle}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                     ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                     ScrollViewer.CanContentScroll="False"
+                     PreviewMouseWheel="ThumbList_PreviewMouseWheel"
+                     SelectionChanged="ThumbList_SelectionChanged"
+                     VerticalContentAlignment="Center">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="#22000000" BorderThickness="0" Width="100" Height="75">
+                            <Image Source="{Binding Thumb}" Stretch="Uniform"
+                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <!-- 通常ウィンドウ時 左上にホバー表示される全画面ボタン -->
+        <Button x:Name="FullscreenButton"
+                Content="&#x25A1;"
+                FontSize="18"
+                Width="40" Height="40"
+                HorizontalAlignment="Left" VerticalAlignment="Top"
+                Margin="10,10,0,0"
+                Foreground="White"
+                Background="#99000000"
+                Cursor="Hand"
+                ToolTip="全画面 / 通常ウィンドウ (F11)"
+                Visibility="Collapsed"
+                Click="FullscreenButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="20">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#E0444444"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+
+        <!-- 全画面時 右上にホバー表示される閉じるボタン -->
+        <Button x:Name="CloseFullscreenButton"
+                Content="&#x2715;"
+                FontSize="18"
+                Width="40" Height="40"
+                HorizontalAlignment="Right" VerticalAlignment="Top"
+                Margin="0,10,10,0"
+                Foreground="White"
+                Background="#99000000"
+                Cursor="Hand"
+                ToolTip="閉じる"
+                Visibility="Collapsed"
+                Click="CloseFullscreenButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="20">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#E0444444"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+
+        <!-- 左端にホバー表示される「前の画像」ボタン -->
+        <Button x:Name="PrevButton"
+                Content="&#x25C0;"
+                FontSize="22"
+                Width="48" Height="144"
+                HorizontalAlignment="Left" VerticalAlignment="Center"
+                Margin="8,0,0,0"
+                Foreground="White"
+                Background="#88000000"
+                Cursor="Hand"
+                ToolTip="前の画像 (←)"
+                Visibility="Collapsed"
+                Click="PrevButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#CC444444"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+
+        <!-- 右端にホバー表示される「次の画像」ボタン -->
+        <Button x:Name="NextButton"
+                Content="&#x25B6;"
+                FontSize="22"
+                Width="48" Height="144"
+                HorizontalAlignment="Right" VerticalAlignment="Center"
+                Margin="0,0,8,0"
+                Foreground="White"
+                Background="#88000000"
+                Cursor="Hand"
+                ToolTip="次の画像 (→)"
+                Visibility="Collapsed"
+                Click="NextButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#CC444444"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+    </Grid>
+</Window>
