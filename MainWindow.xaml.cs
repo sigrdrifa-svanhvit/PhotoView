@@ -57,6 +57,9 @@ public partial class MainWindow : Window
     private bool _chromePinned;
     private bool _suppressThumbSelection;
 
+    // 画像ごとの表示回転（90°単位、時計回りの回数 0..3）。コレクションを開くとリセット。
+    private readonly Dictionary<int, int> _rotations = new();
+
     // サムネイルストリップの現在のウィンドウ範囲（スクロールに応じて拡張）
     private int _thumbStart;
     private int _thumbEnd;
@@ -166,6 +169,7 @@ public partial class MainWindow : Window
 
             _collection?.Dispose();
             _collection = col;
+            _rotations.Clear();
             _imageCache.SetCollection(col);
             _thumbCache.SetCollection(col);
             _currentIndex = startIndex;
@@ -227,6 +231,10 @@ public partial class MainWindow : Window
         var bmp = await _imageCache.GetAsync(index);
         var bmpNext = needNext ? await _imageCache.GetAsync(next) : null;
 
+        // この画像に設定された表示回転（90°単位）を適用
+        if (bmp != null && _rotations.TryGetValue(index, out int rot) && rot != 0)
+            bmp = RotateBy(bmp, rot);
+
         // 結果が古くなっていたら無視（コレクション変更 or 別の画像へ移動済み or モード切替）
         if (_collection != col || _currentIndex != index || _twoPageMode != twoPage)
         {
@@ -252,6 +260,19 @@ public partial class MainWindow : Window
         // 1ページ表示で GIF ならアニメーション再生
         if (!twoPage && bmp != null)
             TryStartGifAnimation(col, index);
+    }
+
+    /// <summary>回転カウンタ（0=0°、1=90°CW、2=180°、3=90°CCW）に応じてビットマップを回転します。</summary>
+    private static BitmapSource RotateBy(BitmapSource src, int rot)
+    {
+        rot = ((rot % 4) + 4) % 4;
+        return rot switch
+        {
+            1 => ImageEditor.Rotate90Cw(src),
+            2 => ImageEditor.Rotate90Cw(ImageEditor.Rotate90Cw(src)),
+            3 => ImageEditor.Rotate90Ccw(src),
+            _ => src,
+        };
     }
 
     private void StopGifAnimation()
@@ -790,6 +811,24 @@ public partial class MainWindow : Window
                 {
                     if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) OpenFolderBrowser();
                     else OpenFileBrowser();
+                    e.Handled = true;
+                }
+                break;
+            case Key.L:
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && _collection != null)
+                {
+                    // 左回転（反時計回り）
+                    _rotations[_currentIndex] = (((_rotations.TryGetValue(_currentIndex, out int r0) ? r0 : 0) + 3) % 4);
+                    _ = DisplayImagesAsync(_currentIndex);
+                    e.Handled = true;
+                }
+                break;
+            case Key.R:
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && _collection != null)
+                {
+                    // 右回転（時計回り）
+                    _rotations[_currentIndex] = (((_rotations.TryGetValue(_currentIndex, out int r1) ? r1 : 0) + 1) % 4);
+                    _ = DisplayImagesAsync(_currentIndex);
                     e.Handled = true;
                 }
                 break;

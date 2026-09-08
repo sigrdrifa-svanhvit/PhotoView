@@ -107,7 +107,7 @@
                                FontSize="12" Foreground="#888" HorizontalAlignment="Center" Margin="0,10,0,0"/>
                     <TextBlock Text="← → / 左右端クリック: 送り戻し   Shift+← →: 1枚ずつ （左右端ホバーでボタン）"
                                FontSize="12" Foreground="#888" HorizontalAlignment="Center" Margin="0,6,0,0"/>
-                    <TextBlock Text="P: 2枚表示   S: 左右入れ替え   Esc: 終了"
+                    <TextBlock Text="P: 2枚表示   S: 左右入れ替え   Ctrl+L/R: 左右に90°回転   Esc: 終了"
                                FontSize="12" Foreground="#888" HorizontalAlignment="Center" Margin="0,6,0,0"/>
                     <TextBlock Text="ホイール: 拡大縮小  ドラッグ: 移動   0: フィット   F11: 全画面"
                                FontSize="12" Foreground="#888" HorizontalAlignment="Center" Margin="0,6,0,0"/>
@@ -128,7 +128,7 @@
                     <TextBlock x:Name="SourceText" FontSize="11" Foreground="#888" Margin="0,2,0,0"
                                TextTrimming="CharacterEllipsis" MaxWidth="720"/>
                 </StackPanel>
-                <TextBlock x:Name="HintText" Text="← → / 左右端クリック: 送り戻し   Shift+← →: 1枚   P: 2枚表示   S: 入れ替え   ダブルクリック: フィット/100%   0: フィット   ホイール: 拡大縮小   ドラッグ: 移動   F11: 全画面   右クリック: メニュー"
+                <TextBlock x:Name="HintText" Text="← → / 左右端クリック: 送り戻し   Shift+← →: 1枚   P: 2枚表示   S: 入れ替え   Ctrl+L/R: 90°回転   ダブルクリック: フィット/100%   0: フィット   ホイール: 拡大縮小   ドラッグ: 移動   F11: 全画面   右クリック: メニュー"
                            FontSize="11" Foreground="#666" VerticalAlignment="Bottom" HorizontalAlignment="Right"/>
             </Grid>
         </Border>
