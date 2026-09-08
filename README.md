@@ -10,12 +10,14 @@ Windows フォト風の操作で、複数画像をメモリ上にキャッシュ
 
 ## インストール（推奨）
 
-配布用 MSI インストーラーを実行すると、以下が設定されます。
+配布用 MSI インストーラー（GitHub Releases から取得）を実行すると、以下が設定されます。
 
+- **ライセンス同意画面（EULA）** を経てからインストール
 - アプリ本体（`%LOCALAPPDATA%\PhotoView\` にインストール）
 - **画像ファイルの関連付け**（.png / .jpg / .jpeg / .webp / .bmp / .gif / .tif / .tiff → ダブルクリックで PhotoView が開く）
 - **スタートメニューショートカット**
 - **「送る」メニュー**（右クリックメニューの「送る」→ PhotoView）
+- アプリフォルダに **`README.md` / `LICENSE` / `THIRD-PARTY-NOTICES.txt`**（同梱ライブラリのライセンス）も配置
 
 ※ **圧縮ファイル（zip / rar / 7z など）はデフォルトでは関連付けされません**。
    圧縮ファイルは右クリックメニューの **「送る」→ PhotoView** で開いてください。
@@ -37,22 +39,25 @@ cd C:\Users\kazutaka\Desktop\photoview
 dotnet build -c Release
 ```
 
-実行ファイル: `bin\Release\net10.0-windows\PhotoView.exe`
+実行ファイル: `bin\Release\net10.0-windows10.0.19041.0\PhotoView.exe`
 
 ### インストーラーのビルド
 
-WiX Toolset（`wix` CLI）が必要です。
+WiX Toolset（`wix` CLI）と UI 拡張が必要です。
 
 ```powershell
 # WiX Toolset のインストール（初回のみ）
 dotnet tool install --global wix
 wix eula accept wix7
 
+# EULA（ライセンス同意画面）を出すために UI 拡張を追加（初回のみ）
+wix extension add WixToolset.UI.wixext
+
 # リリースビルド（MSI を dist\ に生成）
-powershell -ExecutionPolicy Bypass -File build.ps1 -Version 1.0.0
+powershell -ExecutionPolicy Bypass -File build.ps1 -Version 1.9.0
 ```
 
-生成物: `dist\PhotoView-1.0.0.msi`（単一ファイルで配布可能）
+生成物: `dist\PhotoView-1.9.0.msi`（単一ファイルで配布可能）
 
 ## 使い方
 
@@ -104,7 +109,7 @@ powershell -ExecutionPolicy Bypass -File build.ps1 -Version 1.0.0
 - **保存形式変更**：PNG / JPEG / GIF / BMP / TIFF / WebP
 - **超解像**：Real-ESRGAN（ONNX Runtime・4倍・アニメ向けモデル）で高解像度化。CPU では1枚数秒のため明示実行。モデル（約5MB）と onnxruntime（約11MB）を同梱
   - **超解像を適用（4倍・AI）**：4倍に拡大
-  - **同サイズ超解像（画質向上・寸法不変）**：4倍へ超解像後にバイキュービックで元サイズへ縮小。範囲選択がある場合は**その選択範囲のみ**処理
+  - **同サイズ超解像（画質向上・寸法不変）**：4倍へ超解像後に高品質補間で元サイズへ縮小。範囲選択がある場合は**その選択範囲のみ**処理
 - 元に戻す（直前）／すべて破棄（元画像へ）
 
 プレビューは**マウスホイールで拡大縮小**でき、**中ボタン（ホイール押し込み）のドラッグで表示位置を移動**できます（編集結果を拡大して細部を確認するのに便利）。
@@ -128,11 +133,13 @@ powershell -ExecutionPolicy Bypass -File build.ps1 -Version 1.0.0
   - `MediaCollection` / `MediaItem`：フォルダと圧縮アーカイブを統一的に扱う抽象層
   - `NaturalStringComparer`：自然順ソート（反対称性・推移性をテストで検証）
 - `Services/`
-  - `ImageDecoder`：Stream → フリーズ済み `BitmapSource`（webp フォールバック込み）
+  - `ImageDecoder`：Stream → フリーズ済み `BitmapSource`（webp は SkiaSharp フォールバック）
   - `ImageCache`：デコード済み画像の LRU インメモリキャッシュ＋周辺プリフェッチ
   - `ThumbnailCache`：サムネイルストリップ用の小サイズ画像キャッシュ
   - `PdfSource` / `PdfPageItem`：Windows.Data.Pdf（WinRT）による PDF ページのラスタライズ
   - `TiffPageSplitter` / `TiffFrameItem`：複数ページ TIFF の1ページ単位への展開
+  - `ImageEditor`：色調・回転・リサイズ・ルリミング・モザイク・ブラー等のピクセル処理（編集ダイアログ用）
+  - `SuperResolution`：ONNX Runtime による Real-ESRGAN（4倍超解像・同サイズ超解像）
 - `PhotoView.Tests/`：`NaturalStringComparer` の不変条件（反射性・反対称性・推移性）を検証するコンソールテスト
 
 ### メモリキャッシュによる滑らかな送り戻し
